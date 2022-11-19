@@ -6,6 +6,8 @@
 #include <rtl/compiler.h>
 #include <string>
 
+#include "message_sender.h"
+#include "message_validator.h"
 
 typedef struct {
     std::string host;
@@ -19,8 +21,10 @@ typedef struct {
 class Subscriber : public mosqpp::mosquittopp
 {
     subscriber_confg config;
+    MessageValidator *messageValidator;
+    NavigationMessageSender *navMessageSender;
 public:
-    Subscriber(const subscriber_confg &config);
+    Subscriber(const subscriber_confg &config, MessageValidator *messageValidator_, NavigationMessageSender *navMessageSender_);
     ~Subscriber() {};
 
     void on_connect(int rc) override;

@@ -14,7 +14,7 @@
 #include <assert.h>
 
 
-const char *host = "192.168.1.61";
+const char *host = "10.10.75.100";
 const u_int16_t port = 18883;
 const char *subTopic = "abot/command";
 const char *mqttUser = "user";

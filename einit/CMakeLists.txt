@@ -14,7 +14,13 @@ find_program (NTPD_ENTITY
 
 
 # Define the ENTITIES variable with a list of entities.
-set (ENTITIES Controller ConfigurationServer ${precompiled_vfsVfsNet} ${NTPD_ENTITY} ${rump_DHCPCD_ENTITY})
+set (ENTITIES 
+     Controller 
+     ConfigurationServer 
+     NavigationController 
+     ${precompiled_vfsVfsNet} 
+     ${NTPD_ENTITY} 
+     ${rump_DHCPCD_ENTITY})
 
 if ("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "aarch64")
      set (SECURITY_PSL_FILE "src/security.psl")

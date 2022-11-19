@@ -1,0 +1,13 @@
+/* Package with an "IConfiguration interface declaration. */
+
+package echo.NavigationCommand
+
+struct NavigationCommandData {
+    UInt8 command;
+    UInt32 durationMs;
+}
+
+interface {
+    /* Ping method interface. */
+    SetNavigationCommand(in NavigationCommandData value, out UInt8 result);
+}

@@ -20,6 +20,10 @@ nk_build_cdl_files (echo_cdl_files IDL_TARGET echo_idl_files NK_MODULE "echo" CD
 nk_build_edl_files (echo_server_edl_files CDL_TARGET echo_cdl_files NK_MODULE "echo" EDL "resources/configuration/ConfigurationServer.edl")
 nk_build_edl_files (echo_controller_edl_files NK_MODULE "echo" EDL "resources/comm_controller/Controller.edl")
 
+nk_build_idl_files (echo_nav_idl_files NK_MODULE "echo" IDL "resources/navigation/NavigationCommand.idl")
+nk_build_cdl_files (echo_nav_cdl_files IDL_TARGET echo_nav_idl_files NK_MODULE "echo" CDL "resources/navigation/NavigationCommand.cdl")
+nk_build_edl_files (echo_nav_edl_files CDL_TARGET echo_nav_cdl_files NK_MODULE "echo" EDL "resources/navigation/NavigationController.edl")
+
 
 find_package (mosquitto REQUIRED COMPONENTS CXX_LIB)
 include_directories (${mosquitto_INCLUDE})
@@ -61,6 +65,7 @@ set(VULN_COMPILER_FLAGS "\
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VULN_COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${VULN_COMPILER_FLAGS}")
 
-add_subdirectory (comm)
+add_subdirectory (communication)
 add_subdirectory (configuration_server)
+add_subdirectory (navigation)
 add_subdirectory (einit)

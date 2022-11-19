@@ -23,6 +23,7 @@ use EDL kl.drivers.GPIO
 /* EDL descriptions of external (not provided in the SDK) programs. */
 use EDL echo.Controller
 use EDL echo.ConfigurationServer
+use EDL echo.NavigationController
 
 /* Allows all tasks to return errors. */
 error {
@@ -487,6 +488,33 @@ request src = echo.ConfigurationServer, dst = kl.core.Core
 }
 
 response src = kl.core.Core, dst = echo.ConfigurationServer
+{
+    grant()
+}
+
+
+/* NavigationController rules */
+execute src = Einit, dst = echo.NavigationController
+{
+    grant()
+}
+
+request src = echo.Controller, dst = echo.NavigationController
+{
+    grant()
+}
+
+response src = echo.NavigationController, dst = echo.Controller
+{
+    grant()
+}
+
+request src = echo.NavigationController, dst = kl.core.Core
+{
+    grant()
+}
+
+response src = kl.core.Core, dst = echo.NavigationController
 {
     grant()
 }
