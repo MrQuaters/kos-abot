@@ -4,22 +4,23 @@
 
 #include <mosquittopp.h>
 #include <rtl/compiler.h>
+#include <string>
 
-/* Files required for transport initialization. */
-#include <coresrv/nk/transport-kos.h>
-#include <coresrv/sl/sl_api.h>
 
-/* Description of the server interface used by the `client` entity. */
-#include <echo/Ping.idl.h>
+typedef struct {
+    std::string host;
+    std::string subTopic;
+    std::string mqttUser;
+    std::string mqttPassword;
+    int port;
+} subscriber_confg; 
 
-#include <assert.h>
+
 class Subscriber : public mosqpp::mosquittopp
 {
-    NkKosTransport transport;
-    struct echo_Ping_proxy proxy;
-    
+    subscriber_confg config;
 public:
-    Subscriber(const char *id, const char *host, int port);
+    Subscriber(const subscriber_confg &config);
     ~Subscriber() {};
 
     void on_connect(int rc) override;

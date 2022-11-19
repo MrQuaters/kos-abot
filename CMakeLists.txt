@@ -15,10 +15,10 @@ include (platform/install)
 # Tools for using NK parser.
 include (platform/nk)
 
-nk_build_idl_files (echo_idl_files NK_MODULE "echo" IDL "resources/Ping.idl")
-nk_build_cdl_files (echo_cdl_files IDL_TARGET echo_idl_files NK_MODULE "echo" CDL "resources/Ping.cdl")
-nk_build_edl_files (echo_server_edl_files CDL_TARGET echo_cdl_files NK_MODULE "echo" EDL "resources/ConfigurationServer.edl")
-nk_build_edl_files (echo_controller_edl_files NK_MODULE "echo" EDL "resources/Controller.edl")
+nk_build_idl_files (echo_idl_files NK_MODULE "echo" IDL "resources/configuration/Configuration.idl")
+nk_build_cdl_files (echo_cdl_files IDL_TARGET echo_idl_files NK_MODULE "echo" CDL "resources/configuration/Configuration.cdl")
+nk_build_edl_files (echo_server_edl_files CDL_TARGET echo_cdl_files NK_MODULE "echo" EDL "resources/configuration/ConfigurationServer.edl")
+nk_build_edl_files (echo_controller_edl_files NK_MODULE "echo" EDL "resources/comm_controller/Controller.edl")
 
 
 find_package (mosquitto REQUIRED COMPONENTS CXX_LIB)

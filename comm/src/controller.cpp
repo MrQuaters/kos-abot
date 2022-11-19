@@ -5,57 +5,83 @@
 
 #include <kos_net.h>
 
+/* Files required for transport initialization. */
+#include <coresrv/nk/transport-kos.h>
+#include <coresrv/sl/sl_api.h>
+
+/* Description of the server interface used by the `client` entity. */
+#include <echo/Configuration.idl.h>
+
+#include <assert.h>
+
 #include "general.h"
 #include "subscriber.h"
 
-namespace consts {
-constexpr const char *DefaultMqttAddress = "10.5.20.23";
-constexpr int DefaultMqttUnencryptedPort = 18883;
-constexpr int PublicationIntervalInSec = 5;
-} // namespace consts
-
-static std::string GetBrokerAddress()
-{
-    const char *brokerAddress = getenv("MQTT_BROKER_ADDRESS");
-    if (!brokerAddress)
-    {
-        std::cerr << app::AppTag
-                  << "Failed to get MQTT broker address. Using default MQTT "
-                     "broker address ("
-                  << consts::DefaultMqttAddress << ")" << std::endl;
-        return consts::DefaultMqttAddress;
-    }
-    return brokerAddress;
-}
-
-static int GetBrokerPort()
-{
-    const char *brokerPortEnvVariable = getenv("MQTT_BROKER_PORT");
-    if (!brokerPortEnvVariable)
-    {
-        std::cerr << app::AppTag
-                  << "Failed to get MQTT broker port. Using default MQTT "
-                     "broker port ("
-                  << consts::DefaultMqttUnencryptedPort << ")" << std::endl;
-        return consts::DefaultMqttUnencryptedPort;
-    }
-
-    try
-    {
-        return std::stoi(brokerPortEnvVariable);
-    }
-    catch (const std::invalid_argument &ex)
-    {
-        std::cerr << app::AppTag
-                  << "Failed to get MQTT broker port: " << ex.what()
-                  << "Using default port ("
-                  << consts::DefaultMqttUnencryptedPort << ")" << std::endl;
-        return consts::DefaultMqttUnencryptedPort;
-    }
-}
 
 int main(void)
 {
+    
+    NkKosTransport transport;
+    struct echo_Configuration_proxy proxy;
+    
+    Handle handle = ServiceLocatorConnect("configuration_connection");
+    assert(handle != INVALID_HANDLE);
+
+    /* Initialize IPC transport for interaction with the server entity. */
+    NkKosTransport_Init(&transport, handle, NK_NULL, 0);
+
+    nk_iid_t riid = ServiceLocatorGetRiid(handle, "echo.Configuration.getConfiguration");
+    assert(riid != INVALID_RIID);
+
+    echo_Configuration_proxy_init(&proxy, &transport.base, riid);
+
+    echo_Configuration_GetConfiguration_req req;
+    echo_Configuration_GetConfiguration_res res;     
+    char resBuffer[echo_Configuration_GetConfiguration_res_arena_size];
+    struct nk_arena resArena = NK_ARENA_INITIALIZER(
+                                resBuffer, resBuffer + sizeof(resBuffer));
+
+    subscriber_confg connectionConfig;
+    
+    if (echo_Configuration_GetConfiguration(&proxy.base, &req, NULL, &res, &resArena) == rcOk) {
+        
+        nk_uint32_t msgLen = 0;
+        nk_char_t *msg =  nk_arena_get(
+                        nk_char_t, &resArena, &res.result.mqttHost, &msgLen);
+        if (msg != RTL_NULL) {
+            connectionConfig.host = std::string(msg);
+        }
+        
+        msg =  nk_arena_get(
+                        nk_char_t, &resArena, &res.result.mqttUser, &msgLen);
+        if (msg != RTL_NULL) {
+            connectionConfig.mqttUser = std::string(msg);
+        }
+
+        msg =  nk_arena_get(
+                        nk_char_t, &resArena, &res.result.mqttPassword, &msgLen);
+        if (msg != RTL_NULL) {
+            connectionConfig.mqttPassword = std::string(msg);
+        }
+
+        msg =  nk_arena_get(
+                        nk_char_t, &resArena, &res.result.mqttTopic, &msgLen);
+        if (msg != RTL_NULL) {
+            connectionConfig.subTopic = std::string(msg);
+        }
+
+        connectionConfig.port = (int) res.result.mqttPort;
+
+        std::cout << "Recieved mqttConfig: " << std::endl 
+            << connectionConfig.host << " " << connectionConfig.port << std::endl 
+            << connectionConfig.subTopic << "  U:" << connectionConfig.mqttUser << std::endl;
+    } else {
+        std::cerr << "Cannot get config from ConfigurationServer....." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    nk_req_reset(&req);
+
     if (!wait_for_network())
     {
         std::cerr << app::AppTag << "Error: Wait for network failed!"
@@ -64,9 +90,8 @@ int main(void)
     }
 
     mosqpp::lib_init();
-
-    auto sub = std::make_unique<Subscriber>(
-        "subscriber", GetBrokerAddress().c_str(), GetBrokerPort());
+    std::cout << "Creating subscriber" << std::endl;
+    auto sub = std::make_unique<Subscriber>(connectionConfig);
     if (sub)
     {
         sub->loop_forever();

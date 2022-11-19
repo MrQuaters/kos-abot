@@ -1,5 +1,5 @@
 entity echo.ConfigurationServer
 
 components {
-    ConfigurationServer : echo.Ping
+    ConfigurationServer : echo.Configuration
 }

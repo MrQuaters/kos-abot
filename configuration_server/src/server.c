@@ -1,60 +1,76 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 /* Files required for transport initialization. */
 #include <coresrv/nk/transport-kos.h>
 #include <coresrv/sl/sl_api.h>
+#include <rtl/string.h>
+#include <rtl/stdio.h>
 
 /* EDL description of the server entity. */
 #include <echo/ConfigurationServer.edl.h>
-
 #include <assert.h>
 
+
+const char *host = "192.168.1.61";
+const u_int16_t port = 18883;
+const char *subTopic = "abot/command";
+const char *mqttUser = "user";
+const char *mqttPassword = "password1";
+
+
 /* Type of interface implementing object. */
-typedef struct IPingImpl {
-    struct echo_Ping base;     /* Base interface of object */
-    rtl_uint32_t step;         /* Extra parameters */
-} IPingImpl;
+typedef struct IConfigurationImpl {
+    struct echo_Configuration base;     /* Base interface of object */
+} IConfigurationImpl;
+
+
+#define FILL_MSG(str, putTo) { \
+    message  = nk_arena_alloc(nk_char_t, \
+                                       res_arena, \
+                                       putTo, \
+                                       (strlen(str) + 1)); \
+    assert (message != RTL_NULL); \
+    rtl_snprintf(message, (strlen(str) + 1), "%s", str); \
+}
+
 
 /* Ping method implementation. */
-static nk_err_t Ping_impl(struct echo_Ping *self,
-                          const struct echo_Ping_Ping_req *req,
+static nk_err_t Configuration_impl(struct echo_Configuration *self,
+                          const struct echo_Configuration_GetConfiguration_req *req,
                           const struct nk_arena *req_arena,
-                          struct echo_Ping_Ping_res *res,
-                          struct nk_arena *res_arena)
-{
-    IPingImpl *impl = (IPingImpl *)self;
-    res->result = req->value;
-    fprintf(stderr, "[SERVER] RECV: %u\n", req->value);
+                          struct echo_Configuration_GetConfiguration_res *res,
+                          struct nk_arena *res_arena) {
+    res->result.mqttPort = port;
+    nk_char_t *message = NULL; 
     
+    FILL_MSG(host, &res->result.mqttHost)
+    FILL_MSG(subTopic, &res->result.mqttTopic)
+    FILL_MSG(mqttUser, &res->result.mqttUser)
+    FILL_MSG(mqttPassword, &res->result.mqttPassword)
+
     return NK_EOK;
 }
 
 
-static struct echo_Ping *CreateIPingImpl(rtl_uint32_t step)
-{
+static struct echo_Configuration *CreateIConfigurationImpl() {
     /* Table of implementations of IPing interface methods. */
-    static const struct echo_Ping_ops ops = {
-        .Ping = Ping_impl
+    static const struct echo_Configuration_ops ops = {
+        .GetConfiguration = Configuration_impl
     };
 
     /* Interface implementing object. */
-    static struct IPingImpl impl = {
+    static struct IConfigurationImpl impl = {
         .base = {&ops}
     };
-
-    impl.step = step;
 
     return &impl.base;
 }
 
 /* Server entry point. */
-int main(void)
-{
-
-    fprintf(stderr, "Hello I'm server\n");
+int main(void) {
     NkKosTransport transport;
     ServiceId iid;
 
@@ -65,15 +81,7 @@ int main(void)
     /* Initialize transport to client. */
     NkKosTransport_Init(&transport, handle, NK_NULL, 0);
 
-    /**
-     * Prepare the structures of the request to the server entity: constant
-     * part and arena. Because none of the methods of the server entity has
-     * sequence type arguments, only constant parts of the
-     * request and response are used. Arenas are effectively unused. However,
-     * valid arenas of the request and response must be passed to
-     * server transport methods (nk_transport_recv, nk_transport_reply) and
-     * to the server_entity_dispatch method.
-     */
+   
     echo_ConfigurationServer_entity_req req;
     char req_buffer[echo_ConfigurationServer_entity_req_arena_size];
     struct nk_arena req_arena = NK_ARENA_INITIALIZER(req_buffer,
@@ -89,14 +97,14 @@ int main(void)
      * Initialize ping component dispatcher. 3 is the value of the step,
      * which is the number by which the input value is increased.
      */
-    echo_Ping_component component;
-    echo_Ping_component_init(&component, CreateIPingImpl(3));
+    echo_Configuration_component component;
+    echo_Configuration_component_init(&component, CreateIConfigurationImpl());
 
     /* Initialize server entity dispatcher. */
     echo_ConfigurationServer_entity entity;
     echo_ConfigurationServer_entity_init(&entity, &component);
 
-    fprintf(stderr, "Hello I'm server\n");
+    fprintf(stderr, "Configuration server started\n");
 
     /* Dispatch loop implementation. */
     do
@@ -112,10 +120,6 @@ int main(void)
                               &req_arena) != NK_EOK) {
             fprintf(stderr, "nk_transport_recv error\n");
         } else {
-            /**
-             * Handle received request by calling implementation Ping_impl
-             * of the requested Ping interface method.
-             */
             echo_ConfigurationServer_entity_dispatch(&entity, &req.base_, &req_arena,
                                         &res.base_, &res_arena);
         }
