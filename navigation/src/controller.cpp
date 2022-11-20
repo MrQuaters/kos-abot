@@ -60,11 +60,49 @@ static nk_err_t NavigationCommand_impl(struct echo_NavigationCommand *self,
     return NK_EOK;
 }
 
+#define SET_RECTANGLE(v_) { v_ = ((double)(req->value.v_))/1000.0; }
+
+/* Ping method implementation. */
+static nk_err_t NavigationAutoCommand_impl(struct echo_NavigationCommand *self,
+                          const struct echo_NavigationCommand_SetAutoNavigationCommand_req *req,
+                          const struct nk_arena *req_arena,
+                          struct echo_NavigationCommand_SetAutoNavigationCommand_res *res,
+                          struct nk_arena *res_arena) {
+                            
+    std::cerr << "[NavigationController] Got Auto command message...." <<std::endl;
+
+    INavigationCommandImpl *cmd = (INavigationCommandImpl *)self;
+
+    cur_pos curPos; 
+    point target; 
+    rectangle screnCoords;
+    rectangle realCoords;
+    
+    SET_RECTANGLE(realCoords.bl.x)
+    SET_RECTANGLE(realCoords.bl.y)
+    SET_RECTANGLE(realCoords.br.x)
+    SET_RECTANGLE(realCoords.br.y)
+    SET_RECTANGLE(realCoords.tl.x)
+    SET_RECTANGLE(realCoords.tl.y)
+    SET_RECTANGLE(realCoords.tr.x)
+    SET_RECTANGLE(realCoords.tr.y)
+    SET_RECTANGLE(target.x)
+    SET_RECTANGLE(target.y)
+    SET_RECTANGLE(curPos.up.x)
+    SET_RECTANGLE(curPos.up.y)
+    SET_RECTANGLE(curPos.down.x)
+    SET_RECTANGLE(curPos.down.y)
+
+    res->result = cmd->navCtr->startAutoTask( curPos, target, screnCoords, realCoords);
+
+    return NK_EOK;
+}
 
 static struct echo_NavigationCommand *CreateINavigationCommandImpl(NavigationController* navPtr) {
     /* Table of implementations of IPing interface methods. */
     static const struct echo_NavigationCommand_ops ops = {
-        .SetNavigationCommand = NavigationCommand_impl
+        .SetNavigationCommand = NavigationCommand_impl,
+        .SetAutoNavigationCommand = NavigationAutoCommand_impl,
     };
 
     /* Interface implementing object. */

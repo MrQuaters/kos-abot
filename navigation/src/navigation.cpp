@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <gpio/gpio.h>
+#include <cmath>
 
 
 #define MAX_MANUAL_SPEED 30
@@ -63,6 +64,87 @@ int NavigationController::startManualTask(NavigationTasks task, int durationMs, 
 
     return 1;
 }
+
+
+int NavigationController::startAutoTask(cur_pos position, point direction, rectangle screnCoords, rectangle realCoords) {
+        std::cerr << "[NavigationController] Requested to start auto Task: ";
+    runMut.lock();
+    if (isRunning) {
+        pos = position;
+        runMut.unlock();
+        return 1;
+    }
+
+    if (activeTask.joinable()) {
+        activeTask.join();
+    }
+    
+    isRunning = true;
+    stop = false;
+
+    activeTask = std::thread(&NavigationController::handleAutoTask, this, position, direction, screnCoords, realCoords);
+    runMut.unlock();
+    return 1;
+}
+
+
+void NavigationController::handleAutoTask(cur_pos position, point direction, rectangle screnCoords, rectangle realCoords) {
+    cur_pos myPos;
+    while(!stop) {
+        runMut.lock();
+        myPos = pos;
+        runMut.unlock();
+
+        point wheelCenter = {
+            (myPos.up.x + myPos.down.x) / 2,
+            (myPos.down.y + myPos.up.y) / 2,
+        };
+
+        std::cerr << wheelCenter.x << " " << wheelCenter.y << std::endl;
+        std::cerr << direction.y << " " << wheelCenter.y << std::endl;
+
+        if ((direction.x - wheelCenter.x) * (direction.x - wheelCenter.x) < 10  && 
+                (direction.y - wheelCenter.y) * (direction.y - wheelCenter.y) < 10 ) 
+                break;
+
+        point myVector = {
+                myPos.up.x - myPos.down.x,
+                myPos.up.y - myPos.down.y,
+        };
+        
+        point destVector = {
+            direction.x - wheelCenter.x,
+            direction.y - wheelCenter.y,
+        };
+
+        float vecCos = (destVector.x * myVector.y + destVector.y * myVector.x) / (
+            sqrt(destVector.x * destVector.x + destVector.y * destVector.y) * sqrt(myVector.x * myVector.x + myVector.y * myVector.y)
+        );
+
+        if (vecCos > 0.98) {
+            std::cerr << "On the vector... go Forward" << std::endl;
+            pwmController->goForward(50);
+        } else {
+            float dot = myVector.x*-destVector.y + myVector.y*destVector.x;
+            if (dot>0) {
+                std::cerr << "Not on the vector... go Right" << std::endl;
+                pwmController->goRight(35);
+            } else {
+                std::cerr << "Not on the vector... go Left" << std::endl;
+                pwmController->goLeft(35);
+            }
+        }
+
+        usleep(100000);
+    }
+
+    pwmController->stop();
+    runMut.lock();
+    isRunning = false;
+    runMut.unlock();
+    std::cerr << "[NavigationController] AutoTask finished...." << std::endl;
+}
+
 
 int NavigationController::stopTask() {
     stop = true;

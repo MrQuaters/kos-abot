@@ -11,22 +11,48 @@ struct manual_message_payload {
     int speed;
 };
 
+
+typedef struct {
+    float x;
+    float y;
+} point;
+
+typedef struct {
+    point up;
+    point down;
+} cur_pos;
+
+typedef struct {
+    point tl;
+    point tr;
+    point br;
+    point bl;
+} rectangle;
+
+typedef struct {
+    point target;
+    cur_pos curPos;
+    rectangle realCoords;
+    rectangle screenCoords;
+} auto_message_payload;
+
 class MessageValidator;
 
 class Message {
     bool isManual;
-    int cmd;
-    int valMs;
-    int speed;
+    manual_message_payload mp;
+    auto_message_payload ap;
 public:
     bool isManualMessage();
     manual_message_payload getManualMessagePayload();
+    auto_message_payload getAutoMessagePayload();
 
     friend class MessageValidator;
 };
 
 
 class MessageValidator {
+    static std::unique_ptr<Message> validateAuto(std::string message);
 public:
     static std::unique_ptr<Message> validateMessage(std::string message);
 };

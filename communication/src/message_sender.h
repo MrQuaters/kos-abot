@@ -12,6 +12,8 @@
 class NavigationMessageSender {
     NkKosTransport *transport;
     struct echo_NavigationCommand_proxy *proxy;
+    void sendAutoMessage(std::unique_ptr<Message> message);
+    void sendManualMessage(std::unique_ptr<Message> message);
 public:
     NavigationMessageSender(NkKosTransport *transport_, struct echo_NavigationCommand_proxy *proxy_): 
          transport(transport_), proxy(proxy_) {};
