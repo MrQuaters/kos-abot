@@ -76,6 +76,14 @@ subscriber_confg getSubscriberConfig() {
 
 int main(void)
 {
+    std::cout << "[CommunicationController] Waiting for network" << std::endl;
+    if (!wait_for_network())
+    {
+        std::cerr << "[CommunicationController]  Error: Wait for network failed!"
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
+
     std::cout << "[CommunicationController] Initing configuration connection" << std::endl;
     Handle handle = ServiceLocatorConnect("configuration_connection");
     assert(handle != INVALID_HANDLE);
@@ -108,14 +116,6 @@ int main(void)
     NavigationMessageSender sender(&transportNav, &proxyNav);
     MessageValidator validator;
 
-        std::cout << "[CommunicationController] Waiting for network" << std::endl;
-    if (!wait_for_network())
-    {
-        std::cerr << "[CommunicationController]  Error: Wait for network failed!"
-                  << std::endl;
-        return EXIT_FAILURE;
-    }
-
     mosqpp::lib_init();
     std::cout << "[CommunicationController]  Creating subscriber" << std::endl;
     auto sub = std::make_unique<Subscriber>(connectionConfig, &validator, &sender);
@@ -123,7 +123,7 @@ int main(void)
     {
         sub->loop_forever();
     }
-
     mosqpp::lib_cleanup();
+    
     return EXIT_SUCCESS;
 }

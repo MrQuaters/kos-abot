@@ -4,11 +4,7 @@ project (echo)
 
 # Initialize CMake library for KasperskyOS SDK.
 include (platform)
-initialize_platform (FORCE_STATIC)
-
-# Add Doxygen documentation
-include (platform/doxygen)
-add_project_documentation_main_target ()
+initialize_platform ()
 
 include (platform/install)
 
@@ -18,7 +14,8 @@ include (platform/nk)
 nk_build_idl_files (echo_idl_files NK_MODULE "echo" IDL "resources/configuration/Configuration.idl")
 nk_build_cdl_files (echo_cdl_files IDL_TARGET echo_idl_files NK_MODULE "echo" CDL "resources/configuration/Configuration.cdl")
 nk_build_edl_files (echo_server_edl_files CDL_TARGET echo_cdl_files NK_MODULE "echo" EDL "resources/configuration/ConfigurationServer.edl")
-nk_build_edl_files (echo_controller_edl_files NK_MODULE "echo" EDL "resources/comm_controller/Controller.edl")
+
+nk_build_edl_files (echo_controller_edl_files NK_MODULE "echo" EDL "resources/comm_controller/Client.edl")
 
 nk_build_idl_files (echo_nav_idl_files NK_MODULE "echo" IDL "resources/navigation/NavigationCommand.idl")
 nk_build_cdl_files (echo_nav_cdl_files IDL_TARGET echo_nav_idl_files NK_MODULE "echo" CDL "resources/navigation/NavigationCommand.cdl")
@@ -38,6 +35,15 @@ include_directories (${rump_INCLUDE})
 # Add a package with the VFS program implementations
 find_package (precompiled_vfs REQUIRED)
 include_directories (${precompiled_vfs_INCLUDE})
+
+# (BSP_HW_ENTITY, BSP_QEMU_ENTITY and BSP_CLIENT_LIB)
+find_package (bsp REQUIRED)
+include_directories (${bsp_INCLUDE})
+
+include_directories ("communication/deps/rapidjson/include")
+
+find_package (gpio REQUIRED COMPONENTS CLIENT_LIB ENTITY)
+include_directories (${gpio_INCLUDE})
 
 # Choose the storage devices for the configuration files.
 # If none of the options are selected, the ramfs device is used.
@@ -65,7 +71,7 @@ set(VULN_COMPILER_FLAGS "\
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VULN_COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${VULN_COMPILER_FLAGS}")
 
-add_subdirectory (communication)
 add_subdirectory (configuration_server)
 add_subdirectory (navigation)
+add_subdirectory (communication)
 add_subdirectory (einit)

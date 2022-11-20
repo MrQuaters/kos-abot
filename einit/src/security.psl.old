@@ -1,7 +1,8 @@
+/* Solution security policy of the "gpio_output" example. */
 
-/* Assigning the execute interface. */
 use trusted._
 
+/* Assigning the execute interface. */
 execute: kl.core.Execute
 
 use nk.base._
@@ -23,7 +24,7 @@ use EDL kl.drivers.BSP
 use EDL kl.drivers.GPIO
 
 /* EDL descriptions of external (not provided in the SDK) programs. */
-use EDL echo.Client
+use EDL echo.Controller
 use EDL echo.ConfigurationServer
 use EDL echo.NavigationController
 
@@ -64,20 +65,6 @@ execute src = Einit, dst = kl.drivers.GPIO
     grant()
 }
 
-/**
- * Allows the tasks with the kl.drivers.GPIO class
- * to send requests to the KasperskyOS kernel and get responses.
- * This enables the GPIO driver to use core endpoints.
- */
-request src = kl.drivers.GPIO, dst = kl.core.Core
-{
-    grant()
-}
-
-response src = kl.core.Core, dst = kl.drivers.GPIO
-{
-    grant()
-}
 
 /**
  * Allows the KasperskyOS kernel to start itself and tasks with the Einit class.
@@ -149,9 +136,9 @@ execute src = Einit, dst = kl.Ntpd
 }
 
 /**
- * Allows the tasks with the Einit class to start the tasks with the echo.Client class.
+ * Allows the tasks with the Einit class to start the tasks with the mosquitto.Subscriber class.
  */
-execute src = Einit, dst = echo.Client
+execute src = Einit, dst = echo.Controller
 {
     grant()
 }
@@ -164,23 +151,6 @@ request src = Einit, dst = kl.core.Core
 {
     grant()
 }
-
-/**
- * Allows the tasks with the Einit class to start the tasks with the kl.drivers.GPIO class.
- */
-execute src=Einit, dst=kl.drivers.GPIO
-{
-    grant()
-}
-
-/**
- * Allows the tasks with the Einit class to start the tasks with the kl.drivers.BSP class.
- */
-execute src=Einit, dst=kl.drivers.BSP
-{
-    grant()
-}
-
 
 response src = kl.core.Core, dst = Einit
 {
@@ -272,45 +242,72 @@ response src = kl.core.Core, dst = kl.VfsSdCardFs
 }
 
 /**
- * Allows the tasks with the echo.Client class to send requests to the KasperskyOS kernel and get
- * responses. This enables the Subscriber program to use core endpoints.
+ * Allows the tasks with the kl.drivers.GPIO class
+ * to send requests to the KasperskyOS kernel and get responses.
+ * This enables the GPIO driver to use core endpoints.
  */
-request src = echo.Client, dst = kl.core.Core
+request src = kl.drivers.GPIO, dst = kl.core.Core
 {
     grant()
 }
 
-response src = kl.core.Core, dst = echo.Client
+response src = kl.core.Core, dst = kl.drivers.GPIO
 {
     grant()
 }
+
+request src = kl.core.Core, dst = kl.drivers.GPIO 
+{
+    grant()
+}
+
+response src = kl.drivers.GPIO, dst = kl.core.Core
+{
+    grant()
+}
+
 
 /**
- * Allows the tasks with the echo.Client class to send requests
+ * Allows the tasks with the mosquitto.Subscriber class to send requests to the KasperskyOS kernel and get
+ * responses. This enables the Subscriber program to use core endpoints.
+ */
+request src = echo.Controller, dst = kl.core.Core
+{
+    grant()
+}
+
+response src = kl.core.Core, dst = echo.Controller
+{
+    grant()
+}
+
+
+/**
+ * Allows the tasks with the mosquitto.Subscriber class to send requests
  * to tasks with the kl.VfsSdCardFs class and get responses.
  * This enables the Subscriber program to communicate with the VfsSdCardFs program.
  */
-request src = echo.Client, dst = kl.VfsSdCardFs
+request src = echo.Controller, dst = kl.VfsSdCardFs
 {
     grant()
 }
 
-response src = kl.VfsSdCardFs, dst = echo.Client
+response src = kl.VfsSdCardFs, dst = echo.Controller
 {
     grant()
 }
 
 /**
- * Allows the tasks with the echo.Client class to send requests
+ * Allows the tasks with the mosquitto.Subscriber class to send requests
  * to tasks with the kl.VfsRamFs class and get responses.
  * This enables the Subscriber program to communicate with the VfsRamFs program.
  */
-request src = echo.Client, dst = kl.VfsRamFs
+request src = echo.Controller, dst = kl.VfsRamFs
 {
     grant()
 }
 
-response src = kl.VfsRamFs, dst = echo.Client
+response src = kl.VfsRamFs, dst = echo.Controller
 {
     grant()
 }
@@ -361,16 +358,16 @@ response src = kl.drivers.RAMDisk, dst = kl.VfsRamFs
 }
 
 /**
- * Allows the tasks with the echo.Client class to send requests
+ * Allows the tasks with the mosquitto.Subscriber class to send requests
  * to tasks with the kl.VfsNet class and get responses.
  * This enables the Subscriber program to communicate with the VfsNet program.
  */
-request src = echo.Client, dst = kl.VfsNet
+request src = echo.Controller, dst = kl.VfsNet
 {
     grant()
 }
 
-response src = kl.VfsNet, dst = echo.Client
+response src = kl.VfsNet, dst = echo.Controller
 {
     grant()
 }
@@ -484,17 +481,19 @@ response src = kl.VfsSdCardFs, dst = kl.Ntpd
     grant()
 }
 
+
+/* ConfigurationServer rules */
 execute src = Einit, dst = echo.ConfigurationServer
 {
     grant()
 }
 
-request src = echo.Client, dst = echo.ConfigurationServer
+request src = echo.Controller, dst = echo.ConfigurationServer
 {
     grant()
 }
 
-response src = echo.ConfigurationServer, dst = echo.Client
+response src = echo.ConfigurationServer, dst = echo.Controller
 {
     grant()
 }
@@ -510,86 +509,37 @@ response src = kl.core.Core, dst = echo.ConfigurationServer
 }
 
 
-/**
- * Allows the tasks with the Einit class to start the tasks with the echo.NavigationController class.
- */
-execute src=Einit, dst=echo.NavigationController
+/* NavigationController rules */
+execute src = Einit, dst = echo.NavigationController
 {
     grant()
 }
 
-
-/**
- * Allows the tasks with the echo.NavigationController class
- * to send requests to the KasperskyOS kernel and get responses.
- * This enables the Client program to use core endpoints.
- */
-request src=echo.NavigationController, dst=kl.core.Core
+execute src = echo.NavigationController 
 {
     grant()
 }
 
-response src=kl.core.Core, dst=echo.NavigationController
+request src = echo.Controller, dst = echo.NavigationController
 {
     grant()
 }
 
-/**
- * Allows the tasks with the kl.drivers.GPIO class
- * to send requests to the KasperskyOS kernel and get responses.
- * This enables the GPIO driver to use core endpoints.
- */
-request src=kl.drivers.GPIO, dst=kl.core.Core
+response src = echo.NavigationController, dst = echo.Controller
 {
     grant()
 }
 
-response src=kl.core.Core, dst=kl.drivers.GPIO
+request src = echo.NavigationController, dst = kl.core.Core
 {
     grant()
 }
 
-/**
- * Allows the tasks with the echo.NavigationController class to send requests
- * to tasks with the kl.drivers.GPIO class and get responses.
- * This enables the Client program to communicate with the GPIO driver.
- */
-request src=echo.NavigationController, dst=kl.drivers.GPIO
+response src = kl.core.Core, dst = echo.NavigationController
 {
     grant()
 }
 
-response src=kl.drivers.GPIO, dst=echo.NavigationController
-{
-    grant()
-}
-
-
-execute src=echo.NavigationController 
-{
-    grant()
-}
-
-/**
- * Allows the tasks with the kl.drivers.BSP class
- * to send requests to the KasperskyOS kernel and get responses.
- * This enables the BSP program to use core endpoints.
- */
-request src=kl.drivers.BSP, dst=kl.core.Core
-{
-    grant()
-}
-
-response src=kl.core.Core, dst=kl.drivers.BSP
-{
-    grant()
-}
-
-/**
- * Allows the tasks with the echo.NavigationController class to send requests
- * to tasks with the kl.drivers.BSP class and get responses.
- * This enables the Client program to communicate with the BSP driver.
- */
 request src=echo.NavigationController, dst=kl.drivers.BSP
 {
     grant()
@@ -600,33 +550,12 @@ response src=kl.drivers.BSP, dst=echo.NavigationController
     grant()
 }
 
-request src = kl.VfsNet, dst = kl.drivers.BSP
+request src=echo.NavigationController, dst=kl.drivers.GPIO
 {
     grant()
 }
 
-response src = kl.drivers.BSP, dst = kl.VfsNet
-{
-    grant()
-}
-
-request src = kl.VfsNet, dst = kl.drivers.GPIO
-{
-    grant()
-}
-
-response src = kl.drivers.GPIO, dst = kl.VfsNet
-{
-    grant()
-}
-
-request src=echo.Client,  dst=echo.NavigationController 
-{
-    grant()
-}
-
-
-response src=echo.NavigationController, dst=echo.Client
+response src=kl.drivers.GPIO, dst=echo.NavigationController
 {
     grant()
 }

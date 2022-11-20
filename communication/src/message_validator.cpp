@@ -14,6 +14,7 @@ std::unique_ptr<Message> MessageValidator::validateMessage(std::string message) 
 
     auto cmd = document["cmd"].GetString();
     msg->cmd = -1;
+    msg->speed = -1;
     msg->isManual = true;
     if (strcmp(cmd,"forward") == 0) {
         msg->cmd = 0;
@@ -39,10 +40,18 @@ std::unique_ptr<Message> MessageValidator::validateMessage(std::string message) 
     if (!document.HasMember("val") || !document["val"].IsDouble()) {
         return nullptr;
     }
-
+    
     msg->valMs = (int)(document["val"].GetDouble() * 1000);
     if (msg->valMs < 0) {
         return nullptr;
+    }
+
+    if (document.HasMember("spd") && document["spd"].IsDouble()) {
+        int speed = (int)(document["spd"].GetDouble() * 100);
+        if (speed<0 || speed>100) {
+            return nullptr;
+        } 
+        msg->speed = speed;
     } 
     return uPrt;
 }
@@ -55,6 +64,7 @@ bool Message::isManualMessage() {
 manual_message_payload Message::getManualMessagePayload() {
     return {
         cmd,
-        valMs
+        valMs,
+        speed
     };
 }

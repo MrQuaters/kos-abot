@@ -8,6 +8,7 @@
 struct manual_message_payload {
     int cmd;
     int valMs;
+    int speed;
 };
 
 class MessageValidator;
@@ -16,6 +17,7 @@ class Message {
     bool isManual;
     int cmd;
     int valMs;
+    int speed;
 public:
     bool isManualMessage();
     manual_message_payload getManualMessagePayload();

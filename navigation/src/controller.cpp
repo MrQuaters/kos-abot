@@ -14,13 +14,13 @@
 /* EDL description of the server entity. */
 #include <echo/NavigationController.edl.h>
 #include <assert.h>
+#include "navigation.h"
 
-class NavigationController;
 
 /* Type of interface implementing object. */
 typedef struct INavigationCommandImpl {
     struct echo_NavigationCommand base;     /* Base interface of object */
-    std::shared_ptr<NavigationController> navCtr;
+    NavigationController *navCtr;
 } INavigationCommandImpl;
 
 
@@ -31,16 +31,37 @@ static nk_err_t NavigationCommand_impl(struct echo_NavigationCommand *self,
                           struct echo_NavigationCommand_SetNavigationCommand_res *res,
                           struct nk_arena *res_arena) {
                             
-        std::cerr << "[NavigationController] Got msg cmd: " << req->value.command << " dur ms:"
-            << req->value.durationMs << std::endl;
+    std::cerr << "[NavigationController] Got msg cmd: " << (int)req->value.command << " dur ms:"
+        << req->value.durationMs << "and speed "<< (int) req->value.speed <<std::endl;
 
-        res->result = 1;
+    INavigationCommandImpl *cmd = (INavigationCommandImpl *)self;
+    if (req->value.command == 4) {
+        res->result = cmd->navCtr->stopTask();
+        return NK_EOK;
+    }
+    if (req->value.command == 0) {
+        res->result = cmd->navCtr->startManualTask(GO_FORWARD, req->value.durationMs, req->value.speed);
+        return NK_EOK;
+    }
+    if (req->value.command == 1) {
+        res->result = cmd->navCtr->startManualTask(GO_BACKWARD, req->value.durationMs, req->value.speed);
+        return NK_EOK;
+    }   
+    if (req->value.command == 2) {
+        res->result = cmd->navCtr->startManualTask(GO_LEFT, req->value.durationMs, req->value.speed);
+        return NK_EOK;
+    }
+    if (req->value.command == 3) {
+        res->result = cmd->navCtr->startManualTask(GO_RIGHT, req->value.durationMs, req->value.speed);
+        return NK_EOK;
+    }
+    res->result = 0;
 
     return NK_EOK;
 }
 
 
-static struct echo_NavigationCommand *CreateINavigationCommandImpl(std::shared_ptr<NavigationController> navPtr) {
+static struct echo_NavigationCommand *CreateINavigationCommandImpl(NavigationController* navPtr) {
     /* Table of implementations of IPing interface methods. */
     static const struct echo_NavigationCommand_ops ops = {
         .SetNavigationCommand = NavigationCommand_impl
@@ -57,6 +78,28 @@ static struct echo_NavigationCommand *CreateINavigationCommandImpl(std::shared_p
 
 /* Server entry point. */
 int main(void) {
+    GpioHandle gpioHandle;
+    
+    if (GpioInit())
+    {
+        fprintf(stderr, "GpioInit failed\n");
+        assert(false);
+    }
+
+    /* initialize and setup gpio0 port */
+    if (GpioOpenPort("gpio0", &gpioHandle) || gpioHandle == GPIO_INVALID_HANDLE)
+    {
+        fprintf(stderr, "GpioOpenPort failed\n");
+        assert(false);
+    }
+
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_IN1, GPIO_DIR_OUT);
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_IN2, GPIO_DIR_OUT);
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_IN3, GPIO_DIR_OUT);
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_IN4, GPIO_DIR_OUT);
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_ENA, GPIO_DIR_OUT);
+    GpioSetMode(gpioHandle, GPIO_PIN_NUM_ENB, GPIO_DIR_OUT);
+
     NkKosTransport transport;
     ServiceId iid;
 
@@ -77,7 +120,8 @@ int main(void) {
                                         res_buffer + sizeof(res_buffer));
 
     echo_NavigationCommand_component component;
-    echo_NavigationCommand_component_init(&component, CreateINavigationCommandImpl(nullptr));
+    std::unique_ptr<NavigationController> navController = std::make_unique<NavigationController>(&gpioHandle);
+    echo_NavigationCommand_component_init(&component, CreateINavigationCommandImpl(navController.get()));
 
     echo_NavigationController_entity entity;
     echo_NavigationController_entity_init(&entity, &component);
@@ -110,6 +154,10 @@ int main(void) {
         }
     }
     while (true);
+    if(GpioClosePort(gpioHandle)){
+        fprintf(stderr, "GpioClosePort failed\n");
+        assert(false);
+    }
 
     return EXIT_SUCCESS;
 }

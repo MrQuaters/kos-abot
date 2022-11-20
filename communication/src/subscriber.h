@@ -5,6 +5,7 @@
 #include <mosquittopp.h>
 #include <rtl/compiler.h>
 #include <string>
+#include <exception>
 
 #include "message_sender.h"
 #include "message_validator.h"

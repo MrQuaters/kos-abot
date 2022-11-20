@@ -12,6 +12,7 @@ void NavigationMessageSender::sendMessage(std::unique_ptr<Message> message) {
     echo_NavigationCommand_SetNavigationCommand_res res;     
     req.value.command = (uint8_t) manual_payload.cmd;
     req.value.durationMs = manual_payload.valMs;
+    req.value.speed = manual_payload.speed;
 
     if (echo_NavigationCommand_SetNavigationCommand(&proxy->base, &req, NULL, &res, NULL) == rcOk) {
         if (res.result == 1) {
